@@ -70,6 +70,7 @@ GEM
       rspec-core (~> 2.13.0)
       rspec-expectations (~> 2.13.0)
       rspec-mocks (~> 2.13.0)
+    ruby-hmac (0.4.0)
     sprockets (2.2.2)
       hike (~> 1.2)
       multi_json (~> 1.0)
@@ -90,3 +91,4 @@ DEPENDENCIES
   mongoid
   rspec
   rspec-rails
+  ruby-hmac

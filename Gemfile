@@ -6,6 +6,7 @@ gem 'mongoid'
 gem 'mongo', '~> 1.8.2'
 gem 'bson', '1.8.2'
 gem 'bcrypt-ruby'
+gem 'ruby-hmac'
 
 group :test do
   gem 'rspec'

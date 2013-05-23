@@ -3,6 +3,7 @@ require '../spec_helper'
 describe StartupGiraffe::DatabaseAuthUser do
   before {
     User.create_indexes
+    User.auth_cookie_name = "auth"
   }
 
   it "doesn't allow inclusion in a non mongoid doc" do
@@ -83,6 +84,100 @@ describe StartupGiraffe::DatabaseAuthUser do
     context "a registered username with the correct password" do
       it "returns the user" do
         User.authenticate( "exists", "passwordishly" ).should == @user
+      end
+    end
+
+    context "when #can_login? starts returning false" do
+      it "returns nil" do
+        expect {
+          @user = @user.becomes( DisabledUser ).save!
+        }.to change { User.authenticate( "exists", "passwordishly" ) }.to nil
+      end
+    end
+
+    describe "auth cookie" do
+      before {
+        @ctlr = FudgedController.new
+      }
+
+      it "should be different from previous" do
+        User.authenticate( "exists", "passwordishly", @ctlr )
+        cookie1 = @ctlr.cookies['auth']
+        User.authenticate( "exists", "passwordishly", @ctlr )
+        cookie2 = @ctlr.cookies['auth']
+        cookie1.should_not == cookie2
+      end
+
+      it "contains only A-z0-9_-" do
+        20.times.collect do
+          User.authenticate( "exists", "passwordishly", @ctlr )
+          @ctlr.cookies['auth']
+        end.join.match( /^[A-z0-9_\-]+$/ ).should_not be_nil
+      end
+
+      context "when auth cookie name set to foo-auth" do
+        before {
+          User.auth_cookie_name = "foo-auth"
+        }
+
+        it "sets cookie with name foo-auth" do
+          expect {
+            User.authenticate( "exists", "passwordishly", @ctlr )
+          }.to change { @ctlr.cookies['foo-auth'] }.from nil
+        end
+      end
+
+      context "when expiration time defined" do
+        before {
+          @expires = 3.weeks.from_now
+          User.authenticate( "exists", "passwordishly", @ctlr, @expires )
+          @cookie = @ctlr.cookies['auth']
+        }
+
+        it "sets encoded auth string" do
+          @cookie[:value].should_not be_nil
+        end
+
+        it "sets cookie with expires time" do
+          @cookie[:expires].should == @expires
+        end
+      end
+    end
+  end
+
+  context "when checking authorization" do
+    before {
+      User.create!( username: "exists", password: "passwordishly" )
+      @ctlr = FudgedController.new
+      @user = User.authenticate( "exists", "passwordishly", @ctlr )
+    }
+
+    context "if same authorization that was set" do
+      it "returns the user" do
+        User.check_database_user_auth( @ctlr ).should == @user
+      end
+    end
+
+    context "if payload modified after being set" do
+      before {
+        hash = JSON.parse( Base64.decode64( "#{@ctlr.cookies['auth'].tr( '-_', '+/' )}==" ) )
+        hash['payload'] = Moped::BSON::ObjectId.new.to_s
+        @ctlr.cookies['auth'] = Base64.encode64( hash.to_json ).strip.tr( '+/', '-_' ).gsub( /[\n\r=]/, '' )
+      }
+
+      it "returns nil" do
+        User.check_database_user_auth( @ctlr ).should be_nil
+      end
+    end
+
+    context "if user changes password" do
+      before {
+        @user.password = "newpasswordbish"
+        @user.save
+      }
+
+      it "returns nil" do
+        User.check_database_user_auth( @ctlr ).should be_nil
       end
     end
   end
