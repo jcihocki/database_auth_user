@@ -37,7 +37,7 @@ module StartupGiraffe
       def authenticate( username, password, cookies = nil, expires = nil )
         user = self.by_username( username ).first
         if user
-          if BCrypt::Password.new( user.password_hash ) != password || !user.can_login?
+          if BCrypt::Password.new( user.password_hash ) != "#{self.system_wide_salt}#{password}" || !user.can_login?
             user = nil
           elsif cookies
             auth_cookie_val = user.create_auth_cookie
@@ -89,7 +89,7 @@ module StartupGiraffe
     def password=  str
       if !str.nil?
         if str.size >= 8
-          self.password_hash = BCrypt::Password.create( str )
+          self.password_hash = BCrypt::Password.create( "#{self.class.system_wide_salt}#{str}" )
           @password_error = nil
         else
           @password_error = "must be at least 8 characters"

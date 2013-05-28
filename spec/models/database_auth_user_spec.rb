@@ -28,6 +28,10 @@ describe StartupGiraffe::DatabaseAuthUser do
         end
       end
 
+      it "requires a username" do
+
+      end
+
       it "requires a password" do
         User.new( username: "foobarbaz", password: "" ).should be_invalid
       end
@@ -160,15 +164,33 @@ describe StartupGiraffe::DatabaseAuthUser do
 
     context "if payload modified after being set" do
       before {
-        hash = JSON.parse( Base64.decode64( "#{@ctlr.cookies['auth'].tr( '-_', '+/' )}==" ) )
-        hash['payload'] = Moped::BSON::ObjectId.new.to_s
-        @ctlr.cookies['auth'] = Base64.encode64( hash.to_json ).strip.tr( '+/', '-_' ).gsub( /[\n\r=]/, '' )
+        User.system_wide_salt = "secret"
+        @hash = JSON.parse( Base64.decode64( "#{@ctlr.cookies['auth'].tr( '-_', '+/' )}==" ) )
+        @user2 = User.create!( username: "Numbertwo", password: "thedeuce" )
+        @hash['payload'] = @user2.id.to_s
+        @ctlr.cookies['auth'] = Base64.encode64( @hash.to_json ).strip.tr( '+/', '-_' ).gsub( /[\n\r=]/, '' )
+      }
+
+      after {
+        User.system_wide_salt = ""
       }
 
       it "returns nil" do
         User.check_database_user_auth( @ctlr.cookies ).should be_nil
       end
+
+      context "if signature hashed without knowing system wide secret" do
+        before {
+          @hash['signature'] = HMAC::SHA256.hexdigest( "", "#{@hash['modulus']}#{@hash['payload']}#{@user2.password_hash}" )
+          @ctlr.cookies['auth'] = Base64.encode64( @hash.to_json ).strip.tr( '+/', '-_' ).gsub( /[\n\r=]/, '' )
+        }
+
+        it "returns nil" do
+          User.check_database_user_auth( @ctlr.cookies ).should be_nil
+        end
+      end
     end
+
 
     context "if user changes password" do
       before {
