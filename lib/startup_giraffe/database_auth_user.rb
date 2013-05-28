@@ -34,22 +34,22 @@ module StartupGiraffe
     end
 
     module ClassMethods
-      def authenticate( username, password, ctlr = nil, expires = nil )
+      def authenticate( username, password, cookies = nil, expires = nil )
         user = self.by_username( username ).first
         if user
           if BCrypt::Password.new( user.password_hash ) != password || !user.can_login?
             user = nil
-          elsif ctlr
+          elsif cookies
             auth_cookie_val = user.create_auth_cookie
-            ctlr.cookies[self.auth_cookie_name] = { :value => auth_cookie_val, :expires => expires } if expires
-            ctlr.cookies[self.auth_cookie_name] = auth_cookie_val unless expires
+            cookies[self.auth_cookie_name] = { :value => auth_cookie_val, :expires => expires } if expires
+            cookies[self.auth_cookie_name] = auth_cookie_val unless expires
           end
         end
         return user
       end
 
-      def check_database_user_auth( ctlr )
-        cookie_val = ctlr.cookies[self.auth_cookie_name]
+      def check_database_user_auth( cookies )
+        cookie_val = cookies[self.auth_cookie_name]
         if cookie_val
           begin
             auth_hash = JSON.parse( Base64.decode64( "#{cookie_val.tr( '-_', '+/' )}==" ) )
@@ -64,8 +64,8 @@ module StartupGiraffe
         return nil
       end
 
-      def logout ctlr
-        ctlr.cookies.delete( self.auth_cookie_name )
+      def logout cookies
+        cookies.delete( self.auth_cookie_name )
       end
     end
 

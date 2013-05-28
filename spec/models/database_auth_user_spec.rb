@@ -101,16 +101,16 @@ describe StartupGiraffe::DatabaseAuthUser do
       }
 
       it "should be different from previous" do
-        User.authenticate( "exists", "passwordishly", @ctlr )
+        User.authenticate( "exists", "passwordishly", @ctlr.cookies )
         cookie1 = @ctlr.cookies['auth']
-        User.authenticate( "exists", "passwordishly", @ctlr )
+        User.authenticate( "exists", "passwordishly", @ctlr.cookies )
         cookie2 = @ctlr.cookies['auth']
         cookie1.should_not == cookie2
       end
 
       it "contains only A-z0-9_-" do
         20.times.collect do
-          User.authenticate( "exists", "passwordishly", @ctlr )
+          User.authenticate( "exists", "passwordishly", @ctlr.cookies )
           @ctlr.cookies['auth']
         end.join.match( /^[A-z0-9_\-]+$/ ).should_not be_nil
       end
@@ -122,7 +122,7 @@ describe StartupGiraffe::DatabaseAuthUser do
 
         it "sets cookie with name foo-auth" do
           expect {
-            User.authenticate( "exists", "passwordishly", @ctlr )
+            User.authenticate( "exists", "passwordishly", @ctlr.cookies )
           }.to change { @ctlr.cookies['foo-auth'] }.from nil
         end
       end
@@ -130,7 +130,7 @@ describe StartupGiraffe::DatabaseAuthUser do
       context "when expiration time defined" do
         before {
           @expires = 3.weeks.from_now
-          User.authenticate( "exists", "passwordishly", @ctlr, @expires )
+          User.authenticate( "exists", "passwordishly", @ctlr.cookies, @expires )
           @cookie = @ctlr.cookies['auth']
         }
 
@@ -149,12 +149,12 @@ describe StartupGiraffe::DatabaseAuthUser do
     before {
       User.create!( username: "exists", password: "passwordishly" )
       @ctlr = FudgedController.new
-      @user = User.authenticate( "exists", "passwordishly", @ctlr )
+      @user = User.authenticate( "exists", "passwordishly", @ctlr.cookies )
     }
 
     context "if same authorization that was set" do
       it "returns the user" do
-        User.check_database_user_auth( @ctlr ).should == @user
+        User.check_database_user_auth( @ctlr.cookies ).should == @user
       end
     end
 
@@ -166,7 +166,7 @@ describe StartupGiraffe::DatabaseAuthUser do
       }
 
       it "returns nil" do
-        User.check_database_user_auth( @ctlr ).should be_nil
+        User.check_database_user_auth( @ctlr.cookies ).should be_nil
       end
     end
 
@@ -177,7 +177,7 @@ describe StartupGiraffe::DatabaseAuthUser do
       }
 
       it "returns nil" do
-        User.check_database_user_auth( @ctlr ).should be_nil
+        User.check_database_user_auth( @ctlr.cookies ).should be_nil
       end
     end
   end
@@ -186,12 +186,12 @@ describe StartupGiraffe::DatabaseAuthUser do
     before {
       @user = User.create!( username: "exists", password: "passwordishly" )
       @ctlr = FudgedController.new
-      User.authenticate( "exists", "passwordishly", @ctlr )
+      User.authenticate( "exists", "passwordishly", @ctlr.cookies )
     }
 
     it "deletes the cookie" do
       expect {
-        User.logout( @ctlr )
+        User.logout( @ctlr.cookies )
       }.to change { @ctlr.cookies['auth'] }.to nil
     end
   end
