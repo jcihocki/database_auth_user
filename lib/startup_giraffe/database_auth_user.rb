@@ -63,6 +63,10 @@ module StartupGiraffe
         end
         return nil
       end
+
+      def logout ctlr
+        ctlr.cookies.delete( "auth" )
+      end
     end
 
     def create_auth_cookie

@@ -181,4 +181,18 @@ describe StartupGiraffe::DatabaseAuthUser do
       end
     end
   end
+
+  context "when logging out" do
+    before {
+      @user = User.create!( username: "exists", password: "passwordishly" )
+      @ctlr = FudgedController.new
+      User.authenticate( "exists", "passwordishly", @ctlr )
+    }
+
+    it "deletes the cookie" do
+      expect {
+        User.logout( @ctlr )
+      }.to change { @ctlr.cookies['auth'] }.to nil
+    end
+  end
 end
