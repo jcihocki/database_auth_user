@@ -65,7 +65,7 @@ module StartupGiraffe
       end
 
       def logout ctlr
-        ctlr.cookies.delete( "auth" )
+        ctlr.cookies.delete( self.auth_cookie_name )
       end
     end
 
