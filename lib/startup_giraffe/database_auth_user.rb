@@ -6,10 +6,13 @@ module StartupGiraffe
 
       base.field :username, type: String
       base.field :password_hash, type: String
+      base.field :password_reset_code, type: String
 
       base.scope :by_username, ->( username ) { base.where( username: username ) }
+      base.scope :by_password_reset_code, ->( code ) { base.where( password_reset_code: code ) }
       base.index( { username: 1 }, { sparse: true, unique: true } )
-      base.attr_protected :password_hash
+      base.index( { password_reset_code: 1 }, { sparse: true, unique: true } )
+      base.attr_protected :password_hash, :password_reset_code
 
       class << base
         attr_accessor :auth_cookie_name
@@ -67,6 +70,18 @@ module StartupGiraffe
       def logout cookies
         cookies.delete( self.auth_cookie_name )
       end
+
+      def reset_password code, new_password
+        return nil if code.blank?
+        user = self.by_password_reset_code( code ).first
+        if user
+          user.password = new_password
+          user.password_reset_code = nil
+          user.save
+          return user
+        end
+        return nil
+      end
     end
 
     def create_auth_cookie
@@ -98,5 +113,10 @@ module StartupGiraffe
         @password_error = "is required"
       end
     end
+
+    def forgot_password
+      self.set( :password_reset_code, HMAC::SHA256.hexdigest( self.class.system_wide_salt, "#{self.id} #{Time.now.to_s} #{self.password_hash}" ) )
+    end
+
   end
 end

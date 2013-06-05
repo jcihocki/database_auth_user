@@ -217,4 +217,93 @@ describe StartupGiraffe::DatabaseAuthUser do
       }.to change { @ctlr.cookies['auth'] }.to nil
     end
   end
+
+  context "when resetting password" do
+    before {
+      @other_user = User.create!( username: "exists2", password: "passwordishly" )
+      @user = User.create!( username: "exists", password: "passwordishly" )
+    }
+
+    it "doesn't allow mass assigning password_reset_code field" do
+      expect {
+        @user.update_attributes( password_reset_code: "foo" )
+      }.not_to change { @user.password_reset_code }
+    end
+
+    context "if forgot password never called" do
+      it "doesn't reset password" do
+        expect {
+          User.reset_password( @user.password_reset_code, "derpderpderp" )
+        }.not_to change { User.authenticate( "exists", "derpderpderp" ) }
+      end
+
+      it "returns nil" do
+        User.reset_password( nil, "derpderpderp" ).should be_nil
+      end
+
+      it "returns nil" do
+        User.reset_password( "", "derpderpderp" ).should be_nil
+      end
+    end
+
+    context "when auth code correct" do
+      before {
+        @user.forgot_password
+        @code = @user.password_reset_code
+      }
+
+      context "when password valid" do
+        it "changes password" do
+          expect {
+            User.reset_password( @code, "derpderpderp" )
+          }.to change { User.authenticate( "exists", "derpderpderp" ) }.to @user
+        end
+
+        it "returns the user" do
+          User.reset_password( @code, "derpderpderp" ).should == @user
+        end
+
+        it "doesn't change another user's password" do
+          expect {
+            User.reset_password( @code, "derpderpderp" )
+          }.not_to change { User.authenticate( "exists2", "derpderpderp" ) }
+        end
+      end
+
+      context "used for the second time" do
+        before {
+          User.reset_password( @user.password_reset_code, "derpderpderp" )
+        }
+
+        it "doesn't reset password" do
+          expect {
+            User.reset_password( @code, "derpderpderp2" )
+          }.not_to change { User.authenticate( "exists", "derpderpderp2" ) }
+        end
+
+        it "returns nil" do
+            User.reset_password( @code, "derpderpderp2" ).should be_nil
+        end
+      end
+    end
+
+    context "when auth code modified/incorrect" do
+      before {
+        @user.forgot_password
+        @code = @user.password_reset_code
+        @code[4] = "g"
+      }
+
+      it "doesn't reset password" do
+        expect {
+          User.reset_password( @code, "derpderpderp" )
+        }.not_to change { User.authenticate( "exists", "derpderpderp" ) }
+      end
+
+      it "returns nil" do
+        User.reset_password( nil, "derpderpderp" ).should be_nil
+      end
+
+    end
+  end
 end
