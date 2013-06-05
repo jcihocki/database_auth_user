@@ -115,7 +115,7 @@ module StartupGiraffe
     end
 
     def forgot_password
-      self.set( :password_reset_code, HMAC::SHA256.hexdigest( self.class.system_wide_salt, "#{self.id} #{Time.now.to_s} #{self.password_hash}" ) )
+      self.set( :password_reset_code, HMAC::SHA256.hexdigest( self.class.system_wide_salt, "#{self.id} #{Time.now.to_s} #{self.password_hash} #{Moped::BSON::ObjectId.new.to_s} #{rand( 1000000000 )}" ) )
     end
 
   end

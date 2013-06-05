@@ -270,6 +270,22 @@ describe StartupGiraffe::DatabaseAuthUser do
         end
       end
 
+      context "if #forgot_password called again before use" do
+        before {
+          @user.forgot_password
+        }
+
+        it "doesn't reset password" do
+          expect {
+            User.reset_password( @code, "derpderpderp2" )
+          }.not_to change { User.authenticate( "exists", "derpderpderp2" ) }
+        end
+
+        it "returns nil" do
+            User.reset_password( @code, "derpderpderp2" ).should be_nil
+        end
+      end
+
       context "used for the second time" do
         before {
           User.reset_password( @user.password_reset_code, "derpderpderp" )
@@ -304,6 +320,18 @@ describe StartupGiraffe::DatabaseAuthUser do
         User.reset_password( nil, "derpderpderp" ).should be_nil
       end
 
+    end
+
+    describe "reset code" do
+      before {
+        @user.forgot_password
+        @other_user.forgot_password
+
+      }
+
+      it "is different for 2 different users" do
+        @user.password_reset_code.should_not == @other_user.password_reset_code
+      end
     end
   end
 end
