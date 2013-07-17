@@ -82,6 +82,12 @@ module StartupGiraffe
         end
         return nil
       end
+      
+      def logged_in_user request
+        if request && request.cookies
+          request[:logged_in_user] ||= check_database_user_auth request.cookies
+        end
+      end
     end
 
     def create_auth_cookie

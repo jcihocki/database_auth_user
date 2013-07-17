@@ -1,4 +1,4 @@
-require '../spec_helper'
+require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
 
 describe StartupGiraffe::DatabaseAuthUser do
   before {
@@ -189,6 +189,49 @@ describe StartupGiraffe::DatabaseAuthUser do
           User.check_database_user_auth( @ctlr.cookies ).should be_nil
         end
       end
+    end
+    
+    describe "logged_in_user" do
+      
+      before {
+        @ctlr = FudgedController.new
+      }
+      
+      context "if the auth cookie is nil" do
+        
+        it "is nil" do
+          User.logged_in_user( @ctlr.request ).should be_nil
+        end
+        
+      end
+      
+      context "if the auth cookie is incorrect" do
+        
+        before {
+          @user = User.authenticate( "exists", "passwordishly", @ctlr.cookies )
+          @hash = JSON.parse( Base64.decode64( "#{@ctlr.cookies['auth'].tr( '-_', '+/' )}==" ) )
+          @hash['payload'] = User.new.id.to_s
+          @ctlr.cookies['auth'] = Base64.encode64( @hash.to_json ).strip.tr( '+/', '-_' ).gsub( /[\n\r=]/, '' )
+        }
+        
+        it "is nil" do
+          User.logged_in_user( @ctlr.request ).should be_nil
+        end
+        
+      end
+      
+      context "if the auth cookie is correct" do
+        
+        before {
+          @user = User.authenticate( "exists", "passwordishly", @ctlr.cookies )
+        }
+        
+        it "is the user for whom the auth cookie matches" do
+          User.logged_in_user( @ctlr.request ).should == @user
+        end
+        
+      end
+      
     end
 
 
