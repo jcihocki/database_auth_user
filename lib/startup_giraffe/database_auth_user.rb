@@ -17,9 +17,11 @@ module StartupGiraffe
       class << base
         attr_accessor :auth_cookie_name
         attr_accessor :system_wide_salt
+        attr_accessor :cookie_cache_attrs
       end
       base.auth_cookie_name = "auth"
       base.system_wide_salt = ""
+      base.cookie_cache_attrs = [ :username ]
 
 
       base.validate :password do
@@ -57,7 +59,7 @@ module StartupGiraffe
           begin
             auth_hash = JSON.parse( Base64.decode64( "#{cookie_val.tr( '-_', '+/' )}==" ) )
             candidate = find( auth_hash['payload'] )
-            if candidate.auth_signature( auth_hash['modulus'] ) == auth_hash['signature']
+            if candidate.auth_signature( auth_hash['modulus'], auth_hash['cache'] ) == auth_hash['signature']
               return candidate
             end
           rescue
@@ -88,15 +90,34 @@ module StartupGiraffe
           request[:logged_in_user] ||= check_database_user_auth request.cookies
         end
       end
+      
+      def cookie_cache request
+        if request && request.cookies
+          cookie_val = request.cookies[self.auth_cookie_name]
+          return JSON.parse( JSON.parse( Base64.decode64( "#{cookie_val.tr( '-_', '+/' )}==" ) )['cache'] ) if cookie_val
+        end
+      end
+      
+      def cache_in_cookie *args
+        args.each do |arg|
+          self.cookie_cache_attrs << arg
+        end
+      end
     end
 
     def create_auth_cookie
       modulus = rand( 100000000 ).to_s
-      return Base64.encode64( { "payload" => self.id.to_s, "modulus" => modulus, "signature" => auth_signature( modulus ) }.to_json ).strip.tr( '+/', '-_' ).gsub( /[\n\r=]/, '' )
+      cache = self.class.cookie_cache_attrs.each_with_object({}) { |attr, hash| hash[attr] = self.public_send attr }.to_json
+      return Base64.encode64({
+        "payload" => self.id.to_s,
+        "modulus" => modulus,
+        "signature" => auth_signature( modulus, cache ),
+        "cache" => cache
+      }.to_json ).strip.tr( '+/', '-_' ).gsub( /[\n\r=]/, '' )
     end
 
-    def auth_signature modulus
-      HMAC::SHA256.hexdigest( self.class.system_wide_salt, "#{modulus}#{self.id.to_s}#{self.password_hash}" )
+    def auth_signature modulus, cache
+      HMAC::SHA256.hexdigest( self.class.system_wide_salt, "#{modulus}#{cache}#{self.id.to_s}#{self.password_hash}" )
     end
 
     def can_login?

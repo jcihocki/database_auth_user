@@ -162,6 +162,18 @@ describe StartupGiraffe::DatabaseAuthUser do
       end
     end
 
+    context "if the cache was modified after being set" do
+      before {
+        @hash = JSON.parse( Base64.decode64( "#{@ctlr.cookies['auth'].tr( '-_', '+/' )}==" ) )
+        @hash['cache'] = { herp: 'derp' }
+        @ctlr.cookies['auth'] = Base64.encode64( @hash.to_json ).strip.tr( '+/', '-_' ).gsub( /[\n\r=]/, '' )
+      }
+      
+      it "returns nil" do
+        User.check_database_user_auth( @ctlr.cookies ).should be_nil
+      end
+    end
+
     context "if payload modified after being set" do
       before {
         User.system_wide_salt = "secret"
@@ -233,7 +245,6 @@ describe StartupGiraffe::DatabaseAuthUser do
       end
       
     end
-
 
     context "if user changes password" do
       before {
@@ -377,4 +388,47 @@ describe StartupGiraffe::DatabaseAuthUser do
       end
     end
   end
+  
+  describe "cookie_cache" do
+    
+    before {
+      @ctlr = FudgedController.new
+    }
+    
+    context "if the auth cookie is nil" do
+      
+      it "is nil" do
+        User.cookie_cache( @ctlr.request ).should be_nil
+      end
+      
+    end
+    
+    context "if the auth cookie is not nil" do
+      
+      before {
+        @user = User.create!( username: "exists", password: "passwordishly" )
+        @user = User.authenticate( "exists", "passwordishly", @ctlr.cookies )
+      }
+      
+      it "is a hash containing the cached attributes" do
+        User.cookie_cache( @ctlr.request ).should == { "username" => "exists" }
+      end
+      
+      context "if attributes are added to cache_in_cookie" do
+        
+        before {
+          User.cache_in_cookie :id
+          @user = User.authenticate( "exists", "passwordishly", @ctlr.cookies )
+        }
+        
+        it "returns all the attributes added to the cache" do
+          User.cookie_cache( @ctlr.request )['id'].should_not be_nil
+        end
+        
+      end
+      
+    end
+    
+  end
+  
 end
