@@ -1,5 +1,5 @@
 module StartupGiraffe
   module DatabaseAuthUser
-    VERSION = "1.0"
+    VERSION = "1.1"
   end
 end
