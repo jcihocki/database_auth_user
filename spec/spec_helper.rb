@@ -5,8 +5,6 @@ require "rspec"
 require "startup_giraffe/database_auth_user"
 require "factory_girl"
 require "mongoid"
-require 'active_model'
-require 'protected_attributes'
 
 # Set the database that the spec suite connects to.
 Mongoid.configure do |config|

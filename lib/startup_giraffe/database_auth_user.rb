@@ -3,6 +3,7 @@ module StartupGiraffe
     def self.included base
       require 'bcrypt'
       require 'hmac-sha2'
+      require 'protected_attributes'
       
       base.include ActiveModel::MassAssignmentSecurity
 
