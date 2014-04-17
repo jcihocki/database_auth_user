@@ -5,10 +5,12 @@ require "rspec"
 require "startup_giraffe/database_auth_user"
 require "factory_girl"
 require "mongoid"
+require 'active_model'
+require 'protected_attributes'
 
 # Set the database that the spec suite connects to.
 Mongoid.configure do |config|
-  config.connect_to("database_auth_user_test", consistency: :strong)
+  config.connect_to("database_auth_user_test", read: :primary)
 end
 
 FactoryGirl.definition_file_paths << File.expand_path("../factories", __FILE__)
@@ -20,7 +22,6 @@ RSpec.configure do |config|
   # Drop all collections and clear the identity map before each spec.
   config.before(:each) do
     Mongoid.purge!
-    Mongoid::IdentityMap.clear
   end
 end
 

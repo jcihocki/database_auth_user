@@ -1,16 +1,12 @@
 source 'https://rubygems.org'
 
-
-
-gem 'mongoid'
-gem 'mongo', '~> 1.8.2'
-gem 'bson', '1.8.2'
+gem 'mongoid', "~> 4.0.0.beta1", github: 'mongoid/mongoid'
 gem 'bcrypt-ruby'
 gem 'ruby-hmac'
+gem 'protected_attributes'
 
 group :test do
   gem 'rspec'
-  gem 'rspec-rails'
   gem "factory_girl", "~> 4.0"
 end
 

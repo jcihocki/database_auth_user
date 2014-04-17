@@ -94,7 +94,10 @@ describe StartupGiraffe::DatabaseAuthUser do
     context "when #can_login? starts returning false" do
       it "returns nil" do
         expect {
-          @user = @user.becomes( DisabledUser ).save!
+          password_hash = @user.password_hash
+          @user = @user.becomes( DisabledUser )
+          @user.password_hash = password_hash
+          @user.save!
         }.to change { User.authenticate( "exists", "passwordishly" ) }.to nil
       end
     end
