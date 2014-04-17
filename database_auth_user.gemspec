@@ -17,9 +17,14 @@ Gem::Specification.new do |s|
 
   s.required_ruby_version     = ">= 1.9"
   s.required_rubygems_version = ">= 1.3.6"
-
-  s.add_dependency("mongoid", [">= 3.0.0"])
-  s.add_dependency("bcrypt-ruby")
+  
+  s.add_dependency 'mongoid', '~> 4.0.0.beta1'
+  s.add_dependency 'bcrypt-ruby'
+  s.add_dependency 'ruby-hmac'
+  s.add_dependency 'protected_attributes'
+  
+  s.add_development_dependency 'rspec'
+  s.add_development_dependency 'factory_girl', '~> 4.0' 
 
   s.files        = Dir.glob("lib/**/*") + %w(CHANGELOG.md LICENSE README.md)
   s.require_path = 'lib'
